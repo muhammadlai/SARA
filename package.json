@@ -1,0 +1,19 @@
+{
+  "name": "sara",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sara — personal AI agent and virtual character (modular monorepo).",
+  "type": "module",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "verify": "node scripts/verify.mjs",
+    "lint:md": "markdownlint --config .markdownlint.json \"**/*.md\" --ignore \"node_modules/**\""
+  },
+  "devDependencies": {
+    "markdownlint-cli": "^0.49.1"
+  }
+}
