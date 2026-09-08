@@ -17,14 +17,14 @@ the verification harness runs them before any push. Failures are never silently 
 
 ## Test pyramid
 
-| Layer | Tool | Scope | Introduced |
+| Layer | Tool | Scope | Status |
 | --- | --- | --- | --- |
-| Static | TypeScript strict, ESLint | Types, lint rules, boundary rules | Phase 1 |
-| Unit | Vitest | Pure logic: orchestrator planning, persona/emotion math, config validation, tool schemas | Phase 1 |
-| Integration | Vitest + supertest | HTTP endpoints against a test DB; package interactions | Phase 2 |
+| Static | TypeScript strict, ESLint | Types, lint rules, boundary rules | ✅ Phase 1 |
+| Unit | Vitest | Config validation, auth crypto, migration runner, UI components | ✅ Phase 1 |
+| Integration | Vitest + Fastify `inject()` | HTTP endpoints with security middleware, no open ports | ✅ Phase 1 |
 | Contract | Vitest with recorded fixtures | Provider adapters behave per contract (LLM, social) | Phase 3 |
 | End-to-end | Playwright | Real browser flows: login, chat, approve a post | Phase 8+ |
-| Repo checks | `scripts/verify.mjs` | Structure, env hygiene, secret scan, doc links | Phase 0 |
+| Repo checks | `scripts/verify.mjs` | Structure, env hygiene, secret scan, doc links, CI gates | ✅ Phase 0 |
 
 ## Conventions
 

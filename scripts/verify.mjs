@@ -2,9 +2,9 @@
 /**
  * Sara — repository verification harness.
  *
- * Phase 0 scope: structural checks, env hygiene, secret scan, doc links.
- * This harness grows with every phase (lint, typecheck, tests, demo) and
- * must pass before any commit is pushed. Zero runtime dependencies.
+ * Phase 1 scope: structural checks, env hygiene, secret scan, doc links,
+ * workspace sanity, CI workflow coverage. This harness grows with every phase
+ * and must pass before any commit is pushed. Zero runtime dependencies.
  *
  * Run: npm run verify
  */
@@ -31,20 +31,20 @@ function assert(cond, message) {
   if (!cond) throw new Error(message);
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+// ── File listing helpers ───────────────────────────────────────────────────
 
-function gitLsFiles() {
-  try {
-    return execFileSync("git", ["ls-files", "-z"], { cwd: ROOT, encoding: "buffer" })
-      .toString("utf8")
-      .split("\0")
-      .filter(Boolean);
-  } catch {
-    return null; // not a git checkout — fall back to filesystem walk
-  }
-}
+const WALK_IGNORE = new Set([
+  ".git",
+  "node_modules",
+  "dist",
+  ".next",
+  "coverage",
+  "data",
+  ".turbo",
+  ".vercel",
+]);
 
-function walk(dir, ignore = new Set([".git", "node_modules"])) {
+function walk(dir, ignore = WALK_IGNORE) {
   const out = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     if (ignore.has(entry.name)) continue;
@@ -55,13 +55,38 @@ function walk(dir, ignore = new Set([".git", "node_modules"])) {
   return out;
 }
 
-function listFiles() {
-  return gitLsFiles() ?? walk(ROOT);
+function gitLsFiles() {
+  try {
+    return execFileSync("git", ["ls-files", "-z"], { cwd: ROOT, encoding: "buffer" })
+      .toString("utf8")
+      .split("\0")
+      .filter(Boolean);
+  } catch {
+    return null; // not a git checkout
+  }
+}
+
+/** Tracked files only (used for "is X committed?" style checks). */
+function trackedFiles() {
+  return gitLsFiles() ?? [];
+}
+
+/**
+ * Tracked files PLUS anything new on disk (so this harness validates fresh,
+ * not-yet-committed work too), minus build output and local secret files.
+ */
+function scanFiles() {
+  const tracked = new Set(trackedFiles());
+  const onDisk = walk(ROOT).filter(
+    (rel) => rel !== ".env" && !/\.(pem|key|db)$/.test(rel) && rel !== "package-lock.json",
+  );
+  return [...new Set([...tracked, ...onDisk])];
 }
 
 // ── Check 1: required files exist and are non-trivial ──────────────────────
 
 const REQUIRED_FILES = [
+  // Phase 0 foundation
   ["README.md", 500],
   ["ARCHITECTURE.md", 2000],
   ["DEVELOPMENT_PLAN.md", 3000],
@@ -72,20 +97,97 @@ const REQUIRED_FILES = [
   ["docs/TESTING_STRATEGY.md", 1000],
   ["docs/SECURITY.md", 1000],
   ["scripts/verify.mjs", 500],
+  // Phase 1 — monorepo & tooling
+  ["vitest.config.ts", 300],
+  ["vitest.dom.setup.ts", 50],
+  ["eslint.config.mjs", 300],
+  [".github/workflows/ci.yml", 400],
+  // Phase 1 — apps
+  ["apps/api/package.json", 150],
+  ["apps/api/src/index.ts", 400],
+  ["apps/api/src/server.ts", 800],
+  ["apps/api/src/routes/v1/health.ts", 300],
+  ["apps/api/src/routes/v1/auth.ts", 600],
+  ["apps/web/package.json", 150],
+  ["apps/web/next.config.ts", 150],
+  ["apps/web/app/layout.tsx", 300],
+  ["apps/web/app/page.tsx", 300],
+  // Phase 1 — packages
+  ["packages/types/package.json", 100],
+  ["packages/types/src/index.ts", 500],
+  ["packages/config/package.json", 100],
+  ["packages/config/src/index.ts", 1500],
+  ["packages/logger/package.json", 100],
+  ["packages/logger/src/index.ts", 300],
+  ["packages/db/package.json", 150],
+  ["packages/db/migrations/0001_users.sql", 100],
+  ["packages/db/src/index.ts", 500],
+  ["packages/ui/package.json", 100],
+  ["packages/ui/src/index.ts", 200],
 ];
 
 runCheck("required files present", () => {
-  const missing = [];
+  const problems = [];
   for (const [file, minBytes] of REQUIRED_FILES) {
     const p = path.join(ROOT, file);
-    if (!fs.existsSync(p)) missing.push(`${file} (missing)`);
-    else if (fs.statSync(p).size < minBytes) missing.push(`${file} (suspiciously small, ${fs.statSync(p).size} bytes)`);
+    if (!fs.existsSync(p)) problems.push(`${file} (missing)`);
+    else if (fs.statSync(p).size < minBytes)
+      problems.push(`${file} (suspiciously small, ${fs.statSync(p).size} bytes)`);
   }
-  assert(missing.length === 0, `missing/empty: ${missing.join(", ")}`);
+  assert(problems.length === 0, `missing/empty: ${problems.join(", ")}`);
   return `${REQUIRED_FILES.length} files verified`;
 });
 
-// ── Check 2: no secret material is tracked ─────────────────────────────────
+// ── Check 2: monorepo workspace sanity ─────────────────────────────────────
+
+const EXPECTED_WORKSPACES = [
+  "@sara/api",
+  "@sara/web",
+  "@sara/types",
+  "@sara/config",
+  "@sara/logger",
+  "@sara/db",
+  "@sara/ui",
+];
+
+runCheck("npm workspaces complete", () => {
+  const rootPkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
+  assert(
+    Array.isArray(rootPkg.workspaces) && rootPkg.workspaces.includes("apps/*"),
+    "root package.json must declare apps/* workspaces",
+  );
+  for (const name of EXPECTED_WORKSPACES) {
+    const scope =
+      name === "@sara/api"
+        ? "apps/api"
+        : name === "@sara/web"
+          ? "apps/web"
+          : `packages/${name.replace("@sara/", "")}`;
+    const pkgPath = path.join(ROOT, scope, "package.json");
+    assert(fs.existsSync(pkgPath), `missing workspace package: ${scope}/package.json`);
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+    assert(pkg.name === name, `${scope}/package.json name must be "${name}" (got "${pkg.name}")`);
+  }
+  return `${EXPECTED_WORKSPACES.length} workspaces: ${EXPECTED_WORKSPACES.join(", ")}`;
+});
+
+// ── Check 3: CI workflow covers the required gates ─────────────────────────
+
+runCheck("CI workflow gates", () => {
+  const wf = fs.readFileSync(path.join(ROOT, ".github/workflows/ci.yml"), "utf8");
+  for (const marker of [
+    "npm ci",
+    "npm run lint",
+    "npm run typecheck",
+    "npm run test",
+    "npm run build",
+  ]) {
+    assert(wf.includes(marker), `ci.yml is missing required step: ${marker}`);
+  }
+  return "install → lint → typecheck → test → build";
+});
+
+// ── Check 4: no secret material is tracked ─────────────────────────────────
 
 const SECRET_PATTERNS = [
   [/ghp_[A-Za-z0-9]{20,}/, "GitHub personal access token"],
@@ -101,12 +203,29 @@ const SECRET_PATTERNS = [
 // High-entropy generic blob; skipped for files where long base64 is legitimate.
 const GENERIC_SECRET = /[A-Za-z0-9+/_-]{45,}={0,2}/;
 const GENERIC_SKIP = /(^|\/)(package-lock\.json|.*\.svg|.*\.min\..*)$/;
-const TEXT_EXT = new Set([".md", ".mjs", ".js", ".ts", ".tsx", ".json", ".yml", ".yaml", ".txt", ".example", ".gitignore"]);
+const TEXT_EXT = new Set([
+  ".md",
+  ".mjs",
+  ".cjs",
+  ".js",
+  ".ts",
+  ".tsx",
+  ".json",
+  ".yml",
+  ".yaml",
+  ".txt",
+  ".example",
+  ".gitignore",
+  ".prisma",
+  ".sql",
+  ".css",
+]);
 
 runCheck("no secrets in tracked files", () => {
   const hits = [];
-  for (const rel of listFiles()) {
-    if (!TEXT_EXT.has(path.extname(rel)) && rel !== ".gitignore" && rel !== ".env.example") continue;
+  for (const rel of scanFiles()) {
+    if (!TEXT_EXT.has(path.extname(rel)) && rel !== ".gitignore" && rel !== ".env.example")
+      continue;
     const content = fs.readFileSync(path.join(ROOT, rel), "utf8");
     content.split("\n").forEach((line, i) => {
       for (const [pattern, label] of SECRET_PATTERNS) {
@@ -121,11 +240,21 @@ runCheck("no secrets in tracked files", () => {
   return "named patterns + high-entropy scan clean";
 });
 
-// ── Check 3: env hygiene ───────────────────────────────────────────────────
+// ── Check 5: env hygiene ───────────────────────────────────────────────────
 
 runCheck(".env.example contains only placeholders", () => {
   const allowedExact = new Set([
-    "development", "production", "test", "info", "debug", "warn", "error", "changeme",
+    "development",
+    "production",
+    "test",
+    "info",
+    "debug",
+    "warn",
+    "error",
+    "0.0.0.0",
+    "127.0.0.1",
+    "operator",
+    "changeme",
   ]);
   const offenders = [];
   const lines = fs.readFileSync(path.join(ROOT, ".env.example"), "utf8").split("\n");
@@ -136,12 +265,16 @@ runCheck(".env.example contains only placeholders", () => {
     assert(eq > 0, `.env.example:${i + 1} is not KEY=VALUE or comment: "${line}"`);
     const key = line.slice(0, eq).trim();
     const value = line.slice(eq + 1).trim();
-    assert(/^[A-Z][A-Z0-9_]*$/.test(key), `.env.example:${i + 1} key "${key}" must be UPPER_SNAKE_CASE`);
+    assert(
+      /^[A-Z][A-Z0-9_]*$/.test(key),
+      `.env.example:${i + 1} key "${key}" must be UPPER_SNAKE_CASE`,
+    );
     if (value === "") return; // empty = intentionally unfilled, fine
     const ok =
       allowedExact.has(value.toLowerCase()) ||
       /^\d+$/.test(value) ||
       /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(value) ||
+      /^file:/.test(value) ||
       /^(changeme|your[-_]|example|placeholder|<)/i.test(value);
     if (!ok) offenders.push(`.env.example:${i + 1} ${key}=${value}`);
   });
@@ -150,27 +283,31 @@ runCheck(".env.example contains only placeholders", () => {
 });
 
 runCheck(".env is ignored by git and untracked", () => {
-  const tracked = listFiles();
-  assert(!tracked.includes(".env"), ".env is tracked by git — remove it from the index immediately");
+  const tracked = trackedFiles();
+  assert(
+    !tracked.includes(".env"),
+    ".env is tracked by git — remove it from the index immediately",
+  );
   for (const rel of tracked) {
-    assert(!/\.(pem|key)$/.test(rel), `key material tracked: ${rel}`);
+    assert(!/\.(pem|key|db)$/.test(rel), `secret/db material tracked: ${rel}`);
   }
   let ignored = false;
   try {
     execFileSync("git", ["check-ignore", "-q", ".env"], { cwd: ROOT });
     ignored = true;
   } catch {
-    // check-ignore exits 1 when not ignored (or git unavailable — .env may not exist yet)
-    ignored = fs.existsSync(path.join(ROOT, ".env")) ? false : "n/a (no .env present, .gitignore rule verified separately)";
+    ignored = fs.existsSync(path.join(ROOT, ".env"))
+      ? false
+      : "n/a (no .env present; .gitignore rule in place)";
   }
   assert(ignored !== false, ".env exists but is NOT gitignored — add it to .gitignore");
   return typeof ignored === "string" ? ignored : ".env ignored by git";
 });
 
-// ── Check 4: relative documentation links resolve ──────────────────────────
+// ── Check 6: relative documentation links resolve ──────────────────────────
 
 runCheck("markdown links resolve", () => {
-  const mdFiles = listFiles().filter((f) => f.endsWith(".md"));
+  const mdFiles = scanFiles().filter((f) => f.endsWith(".md"));
   const broken = [];
   const linkRe = /\[[^\]]*\]\(([^)\s]+)\)/g;
   for (const rel of mdFiles) {
@@ -194,17 +331,16 @@ runCheck("markdown links resolve", () => {
 const green = (s) => `\x1b[32m${s}\x1b[0m`;
 const red = (s) => `\x1b[31m${s}\x1b[0m`;
 const bold = (s) => `\x1b[1m${s}\x1b[0m`;
+const gray = (s) => `\x1b[90m${s}\x1b[0m`;
 
 console.log(`\n${bold("Sara — repo verification")}${" ".repeat(4)}(node ${process.version})\n`);
 for (const r of results) {
-  console.log(` ${r.ok ? green("PASS") : red("FAIL")}  ${r.name}${r.detail ? gray(` — ${r.detail}`) : ""}`);
+  console.log(
+    ` ${r.ok ? green("PASS") : red("FAIL")}  ${r.name}${r.detail ? gray(` — ${r.detail}`) : ""}`,
+  );
 }
 const passed = results.filter((r) => r.ok).length;
 console.log(
   `\n${failed ? red("✗ verify failed") : green("✓ all checks passed")} ${gray(`(${passed}/${results.length})`)}\n`,
 );
-
-function gray(s) {
-  return `\x1b[90m${s}\x1b[0m`;
-}
 process.exit(failed ? 1 : 0);

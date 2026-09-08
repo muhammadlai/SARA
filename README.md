@@ -5,9 +5,13 @@
 > personality and emotions, manage tasks, create content, and — where official APIs permit —
 > help run a social-media workflow for Facebook, Instagram, YouTube and TikTok.
 
-**Status: Phase 0 — Project Foundation (in progress).** Sara is being built incrementally.
-Nothing beyond the foundation exists yet; see [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md)
-for the full roadmap and [ARCHITECTURE.md](ARCHITECTURE.md) for the target architecture.
+**Status: Phase 1 — Application scaffold ✅** (Phase 0 foundation ✅). Sara is being built
+incrementally: see [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) for the roadmap and
+[ARCHITECTURE.md](ARCHITECTURE.md) for the architecture. The dashboard shell, API service,
+configuration, logging, auth foundation and database layer are live; agent features arrive
+phase by phase.
+
+[![CI](https://github.com/muhammadlai/SARA/actions/workflows/ci.yml/badge.svg)](https://github.com/muhammadlai/SARA/actions/workflows/ci.yml)
 
 ## What Sara will become
 
@@ -27,28 +31,66 @@ for the full roadmap and [ARCHITECTURE.md](ARCHITECTURE.md) for the target archi
 
 ```text
 sara/
-├── README.md                     # This file
-├── ARCHITECTURE.md               # Target architecture and stack decisions
-├── DEVELOPMENT_PLAN.md           # Phased roadmap and definition of done
-├── .env.example                  # Environment template (placeholders only — never real secrets)
-├── docs/                         # Conventions, testing strategy, security principles
-├── scripts/                      # Repo verification harness and tooling
-├── apps/                         # (Phase 1+) web dashboard and API service
-└── packages/                     # (Phase 1+) core, memory, persona, tools, social, content
+├── apps/
+│   ├── web/                      # Next.js dashboard shell + module routes (Phase 1)
+│   └── api/                      # Fastify API service, /api/v1 (Phase 1)
+├── packages/
+│   ├── types/                    # Shared types, API envelope, phase registry
+│   ├── config/                   # zod-validated env loading (single source for process.env)
+│   ├── logger/                   # Structured pino logging
+│   ├── db/                       # SQLite (node:sqlite) foundation + migrations
+│   └── ui/                       # Reusable dashboard UI primitives
+├── docs/                         # Conventions, testing strategy, security, ADRs
+├── scripts/                      # Repo verification harness
+└── .github/workflows/ci.yml      # CI: lint → typecheck → test → build → verify
 ```
 
-## Quickstart (Phase 0)
+Dependency rule: `apps/*` may import `packages/*`; never the reverse. See the ADRs under
+`docs/adr/` for key decisions.
+
+## Quickstart
 
 Requirements: Node.js >= 20 and npm >= 10.
 
 ```bash
-npm install          # installs dev tooling (markdownlint)
-npm run verify       # structural verification: docs, env hygiene, secret scan, links
-npm run lint:md      # markdown lint
+npm install                # install all workspace dependencies
+cp .env.example .env       # then edit .env (set OPERATOR_PASSWORD etc.)
+npm run build              # build packages → api → web
+npm run db:migrate         # apply database migrations (SQLite)
+npm start                  # API on http://localhost:4000 · dashboard on http://localhost:3000
 ```
 
-`npm run verify` is the Phase 0 gate: it must pass before every commit, and it will grow
-into the full check harness (typecheck, lint, tests, demo) in later phases.
+Development mode with watch/reload: `npm run dev` (same ports).
+
+The dashboard talks to the API same-origin: browsers call `/api/*` on the web app, which
+proxies to the API service — no CORS setup needed (see ADR 0002).
+
+## Scripts
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Build packages, then run API + web with reload |
+| `npm run build` | Production build (packages, API, web) |
+| `npm start` | Run the production builds |
+| `npm test` | Vitest suite (node + jsdom projects) |
+| `npm run typecheck` | TypeScript strict across all workspaces |
+| `npm run lint` / `format:check` | ESLint / Prettier |
+| `npm run verify` | Repo hygiene: structure, secrets, env, links, CI gates |
+| `npm run db:migrate` | Apply pending migrations (`--` `--status` to list) |
+
+## API (Phase 1)
+
+Base URL: `http://localhost:4000/api/v1` — every response uses the envelope
+`{ ok, data }` or `{ ok: false, error: { code, message }, requestId }`.
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /health` | Service health: version, uptime, database probe |
+| `POST /auth/login` | Operator login (env credentials; disabled until configured) |
+| `GET /auth/me` | Current session (200 also when unauthenticated) |
+| `POST /auth/logout` | Clear the session cookie |
+
+Login is rate limited (5 attempts/minute/IP). Sessions are HttpOnly signed cookies.
 
 ## Documentation index
 
@@ -59,6 +101,7 @@ into the full check harness (typecheck, lint, tests, demo) in later phases.
 | [docs/CODING_CONVENTIONS.md](docs/CODING_CONVENTIONS.md) | Code style, naming, errors, logging, git |
 | [docs/TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md) | Test pyramid, mocking policy, CI gates |
 | [docs/SECURITY.md](docs/SECURITY.md) | Secrets, permission scopes, approvals, audit log |
+| [docs/adr/](docs/adr/) | Architecture decision records |
 
 ## Ground rules
 

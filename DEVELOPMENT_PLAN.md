@@ -30,9 +30,9 @@ one begins. No phase starts until the previous one is verified.
 
 | Phase | Title | Status |
 | --- | --- | --- |
-| 0 | Project foundation (docs, conventions, verification harness) | ✅ Current |
-| 1 | Monorepo scaffold: web app shell + API service + CI | ⬜ Planned |
-| 2 | Database, settings, auth skeleton, audit log schema | ⬜ Planned |
+| 0 | Project foundation (docs, conventions, verification harness) | ✅ Done |
+| 1 | Monorepo scaffold: web app shell + API service + CI | ✅ Done |
+| 2 | Database, settings, auth skeleton, audit log schema | ⬜ Next |
 | 3 | Chat with Sara — LLM orchestrator v1 + conversation memory | ⬜ Planned |
 | 4 | Memory system (preferences, long-term facts, inspection/deletion) | ⬜ Planned |
 | 5 | Personality + emotion engine | ⬜ Planned |
@@ -65,21 +65,32 @@ link checks.
 
 ---
 
-## Phase 1 — Monorepo scaffold
+## Phase 1 — Monorepo scaffold ✅
 
 **Goal:** create the real application skeleton: web dashboard shell, API service, shared
-config package, CI pipeline.
+packages, CI pipeline.
 
-**Planned:** npm workspaces; `apps/web` (Next.js + Tailwind) with a placeholder dashboard
-shell and navigation; `apps/api` (Fastify) with health endpoint and structured logging +
-request IDs; `packages/config` with zod-validated env loading; ESLint + Prettier + Vitest
-wired into all workspaces; GitHub Actions CI (lint + typecheck + test); Docker-free local
-dev scripts.
+**Delivered:** npm workspaces with 7 workspaces — `apps/web` (Next.js 15 + Tailwind 4:
+responsive shell, sidebar + top bar, 11 module routes with phase-labeled placeholders,
+Sara overview card, live System Status card, loading/error/empty states), `apps/api`
+(Fastify 5: `/api/v1` versioning, health + auth-foundation routes, centralized error
+envelope, pino logging with request IDs, helmet/CORS/rate-limit, graceful shutdown),
+`packages/types` (shared envelope/types), `packages/config` (zod env validation +
+root-.env loading), `packages/logger`, `packages/db` (node:sqlite foundation + SQL
+migrations — ADR 0003), `packages/ui`; ESLint 9 flat + Prettier; Vitest (node + jsdom)
+with 70 tests; GitHub Actions CI; ADRs 0001–0003.
 
-**Acceptance:** `npm run dev` serves the web shell and API; health endpoint reachable;
-CI green; verify harness extended to run workspace checks.
+**Deviations from plan (documented in ADRs):** Prisma was replaced by a `node:sqlite`
+foundation for Phase 1 (engine CDN unreachable in the dev environment — ADR 0003); the
+auth foundation and DB layer were pulled forward from Phase 2 as minimal slices per the
+Phase 1 brief.
 
-**Demo:** open the dashboard, hit the API health endpoint, CI run green on GitHub.
+**Acceptance:** `npm run build` + `npm start` serve the dashboard and API; health endpoint
+reachable directly and through the dashboard proxy; all checks green. ✅ Verified.
+
+**Demo (verified):** dashboard at `http://localhost:3000` with live API status; `GET
+/api/v1/health` direct and via `http://localhost:3000/api/v1/health`; login → session →
+`/auth/me` → logout; 404 + rate-limit envelopes; graceful shutdown on SIGTERM.
 
 ## Phase 2 — Database, settings, auth skeleton, audit log
 

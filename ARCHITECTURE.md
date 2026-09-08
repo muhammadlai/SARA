@@ -98,8 +98,8 @@ The long-term module list mapped to where it lives and when it lands:
 | 15 | Scheduling | `packages/tasks` | 6 |
 | 16 | Approval System | `apps/api` + `packages/core` | 9 (schema Phase 2) |
 | 17 | Security/Permissions | `apps/api` + `packages/config` | 2+ |
-| 18 | Audit Logs | `db` + `apps/api` | 2 (schema), 3 (usage) |
-| 19 | Database | `db` (Prisma) | 2 |
+| 18 | Audit Logs | `packages/db` + `apps/api` | 2 (schema), 3 (usage) |
+| 19 | Database | `packages/db` | 1 (foundation ✅), 2 (full schema) |
 | 20 | Background Workers | `apps/worker` | 6 |
 | 21 | Notifications | `apps/api` + `apps/web` | 6+ |
 | 22 | Analytics | `apps/web` | 12 |
@@ -231,18 +231,45 @@ Full principles live in [docs/SECURITY.md](docs/SECURITY.md). Summary:
 
 ## 12. Tech stack (decisions so far)
 
-| Concern | Choice | Rationale |
+| Concern | Choice | Status |
 | --- | --- | --- |
-| Language | TypeScript (strict) everywhere | One language across UI/API/packages; types as contracts |
-| Runtime | Node.js >= 20 | Team stack; first-class LLM and web ecosystem |
-| Frontend | Next.js + React + Tailwind CSS | Modern dashboard/dev ergonomics; decided finally in Phase 1 |
-| API | Fastify | Schema-first, fast, TS-friendly; decided finally in Phase 1 |
-| Validation | zod | One schema language for env, API and tool I/O |
-| ORM/DB | Prisma + PostgreSQL (SQLite dev) | Typed data access, migrations (final in Phase 2) |
-| Tests | Vitest (+ supertest, Playwright later) | See [docs/TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md) |
-| Lint/format | ESLint + Prettier | Enforced from Phase 1 |
-| Queue | BullMQ + Redis (later) | Standard, observable; only when workers land |
+| Language | TypeScript (strict) everywhere | ✅ Phase 1 |
+| Runtime | Node.js >= 20 | ✅ Phase 1 (dev on Node 22) |
+| Frontend | Next.js 15 + React 19 + Tailwind CSS 4 | ✅ Phase 1 |
+| API | Fastify 5 (+ helmet, cors, rate-limit, cookie) | ✅ Phase 1 |
+| Validation | zod (env, API inputs, future tool I/O) | ✅ Phase 1 |
+| Database | SQLite via `node:sqlite` + SQL migrations (ADR 0003); production engine decided Phase 2 | ✅ Phase 1 foundation |
+| Logging | pino via `@sara/logger` (pretty in dev, JSON in prod) | ✅ Phase 1 |
+| Tests | Vitest (node + jsdom projects) | ✅ Phase 1 (Playwright later) |
+| Lint/format | ESLint 9 (flat) + Prettier | ✅ Phase 1 |
+| Monorepo | npm workspaces (ADR 0001) | ✅ Phase 1 |
+| Queue | BullMQ + Redis | Phase 6 |
+| CI | GitHub Actions: install → lint → typecheck → test → build → verify | ✅ Phase 1 |
 
 Anything not listed here is deliberately undecided until the phase that needs it, to avoid
 paying complexity early. Changes to this table go through the same commit that introduces
 the dependency, plus an ADR when the choice is significant.
+
+## 13. Phase 1 implementation notes
+
+Concrete facts about the running system (verified in the Phase 1 demo):
+
+- **Ports:** API `:4000`, dashboard `:3000` (both configurable via env; API binds `0.0.0.0`).
+- **Response envelope:** every endpoint returns `{ ok: true, data, requestId }` or
+  `{ ok: false, error: { code, message, details? }, requestId }` — types live in `@sara/types`.
+- **Versioning:** all routes are registered under `/api/v1` (`routes/v1/`); `GET /api/v1`
+  returns a discovery index; future breaking changes add `routes/v2/` side by side.
+- **Frontend ⇄ backend:** browsers use relative `/api/*` URLs; Next.js rewrites proxy them to
+  `API_INTERNAL_URL` server-side (ADR 0002). The dashboard's System Status card and top-bar
+  pill are the visible proof (loading / online / degraded / offline states, 30–60 s polling).
+- **Security:** helmet headers, CORS restricted to `CORS_ORIGINS` (empty = closed), global
+  rate limit 300 req/min/IP and login at 5/min/IP, HttpOnly SameSite=Lax signed session
+  cookie (8 h TTL). In production (`NODE_ENV=production`) cookies are `Secure`.
+- **Auth foundation:** scrypt password verification, HMAC-signed compact session tokens,
+  `requireSession()` preHandler ready for future protected routes. Credentials are
+  env-based until Phase 2 (database users + real session storage).
+- **Graceful shutdown:** SIGINT/SIGTERM → `app.close()` → database connection released;
+  10 s force-exit guard. Verified in the demo.
+- **Configuration:** the API loads the repo-root `.env` (walk-up search) then validates via
+  `@sara/config`; missing optional pieces degrade with warnings (e.g. ephemeral session
+  secret, login disabled) instead of crashing.

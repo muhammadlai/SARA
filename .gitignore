@@ -14,6 +14,7 @@ build/
 out/
 .next/
 *.tsbuildinfo
+next-env.d.ts
 
 # ── Test & coverage ──────────────────────────────────────────
 coverage/
@@ -24,8 +25,10 @@ logs/
 *.log
 npm-debug.log*
 
-# ── Runtime data (uploads, local DB files, caches) ───────────
+# ── Runtime data (local SQLite DB, uploads, caches) ──────────
 data/
+*.db
+*.db-journal
 uploads/
 media/cache/
 
@@ -39,3 +42,4 @@ Thumbs.db
 # ── Tooling caches ───────────────────────────────────────────
 .turbo/
 .eslintcache
+.vercel

@@ -1,0 +1,26 @@
+{
+  "name": "@sara/api",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Sara API service (Fastify).",
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.0.0",
+    "@fastify/cors": "^10.0.0",
+    "@fastify/helmet": "^13.0.0",
+    "@fastify/rate-limit": "^10.0.0",
+    "@sara/config": "*",
+    "@sara/db": "*",
+    "@sara/logger": "*",
+    "@sara/types": "*",
+    "fastify": "^5.3.0",
+    "zod": "^3.25.0"
+  }
+}
