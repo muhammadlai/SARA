@@ -4,6 +4,7 @@ import { NAV_ITEMS } from "@/lib/nav";
 
 const SHORT_BLURBS: Record<string, string> = {
   "/clip-finder": "Find the best drama moments: transcribe, score, rank, render 9:16 shorts.",
+  "/sara": "AI virtual LIVE host: simulator, memory, moderation, takeover, emergency stop.",
   "/chat": "Natural conversations with streaming replies and memory.",
   "/tasks": "Personal task system with reminders and schedules.",
   "/memory": "Preferences, long-term facts, full inspect/delete control.",

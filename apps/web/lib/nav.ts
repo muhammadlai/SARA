@@ -1,5 +1,6 @@
 import {
   Bot,
+  Radio,
   Brain,
   Clapperboard,
   LayoutDashboard,
@@ -27,6 +28,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard, phase: null },
   { href: "/chat", label: "Chat", icon: MessageCircle, phase: 3 },
   { href: "/clip-finder", label: "Clip Finder", icon: Clapperboard, phase: null },
+  { href: "/sara", label: "Sara LIVE", icon: Radio, phase: null },
   { href: "/tasks", label: "Tasks", icon: ListTodo, phase: 6 },
   { href: "/memory", label: "Memory", icon: Brain, phase: 4 },
   { href: "/content-studio", label: "Content Studio", icon: Wand2, phase: 10 },

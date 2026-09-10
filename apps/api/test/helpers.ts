@@ -1,5 +1,6 @@
 import type { ApiConfig } from "@sara/config";
 import type { ClipFinderContext } from "../src/services/clip-finder.js";
+import type { SaraContext } from "../src/services/sara-live.js";
 import { buildServer } from "../src/server.js";
 
 /** Deterministic base config for tests; override per scenario. */
@@ -24,8 +25,9 @@ export function testConfig(overrides: Partial<ApiConfig> = {}): ApiConfig {
 export async function buildTestApp(
   overrides: Partial<ApiConfig> = {},
   clipFinder?: ClipFinderContext,
+  sara?: SaraContext,
 ) {
-  return buildServer({ config: testConfig(overrides), clipFinder });
+  return buildServer({ config: testConfig(overrides), clipFinder, sara });
 }
 
 export type TestApp = Awaited<ReturnType<typeof buildTestApp>>;

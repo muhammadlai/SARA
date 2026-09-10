@@ -23,6 +23,7 @@
     "fastify": "^5.3.0",
     "zod": "^3.25.0",
     "@sara/clipfinder": "*",
+    "@sara/live": "*",
     "@fastify/multipart": "^9.0.0"
   }
 }

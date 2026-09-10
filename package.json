@@ -16,7 +16,7 @@
   "scripts": {
     "dev": "npm run build:packages && concurrently -n api,web -c magenta,cyan \"npm run dev -w @sara/api\" \"npm run dev -w @sara/web\"",
     "build": "npm run build:packages && npm run build -w @sara/api && npm run build -w @sara/web",
-    "build:packages": "npm run build -w @sara/types && npm run build -w @sara/config && npm run build -w @sara/logger && npm run build -w @sara/db && npm run build -w @sara/clipfinder && npm run build -w @sara/ui",
+    "build:packages": "npm run build -w @sara/types && npm run build -w @sara/config && npm run build -w @sara/logger && npm run build -w @sara/db && npm run build -w @sara/clipfinder && npm run build -w @sara/live && npm run build -w @sara/ui",
     "start": "concurrently -n api,web -c magenta,cyan \"npm run start -w @sara/api\" \"npm run start -w @sara/web\"",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -24,7 +24,7 @@
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,tsx,css,json,mjs}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,css,json,mjs}\"",
-    "lint:md": "markdownlint --config .markdownlint.json \"**/*.md\" --ignore \"node_modules/**\"",
+    "lint:md": "markdownlint --config .markdownlint.json \"**/*.md\" --ignore \"node_modules/**\" --ignore \"services/avatar-engine/**\"",
     "verify": "node scripts/verify.mjs",
     "check": "npm run lint && npm run format:check && npm run typecheck && npm run test",
     "db:migrate": "npm run migrate -w @sara/db",

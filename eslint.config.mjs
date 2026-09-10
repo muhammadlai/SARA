@@ -6,6 +6,7 @@ import tseslint from "typescript-eslint";
 export default tseslint.config(
   {
     ignores: [
+      "services/avatar-engine/**",
       "**/dist/**",
       "**/.next/**",
       "**/node_modules/**",

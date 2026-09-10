@@ -12,3 +12,29 @@
 body {
   @apply bg-zinc-950 text-zinc-100 antialiased;
 }
+
+/* Sara avatar idle/speaking animation (photo mode) */
+@keyframes sara-breathe {
+  0%,
+  100% {
+    transform: scale(1) translateY(0);
+  }
+  50% {
+    transform: scale(1.008) translateY(-3px);
+  }
+}
+@keyframes sara-speak {
+  0%,
+  100% {
+    transform: scale(1.006) translateY(-2px);
+  }
+  50% {
+    transform: scale(1.014) translateY(-6px);
+  }
+}
+.sara-idle {
+  animation: sara-breathe 5.5s ease-in-out infinite;
+}
+.sara-speaking {
+  animation: sara-speak 1.4s ease-in-out infinite;
+}

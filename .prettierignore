@@ -5,3 +5,4 @@ coverage/
 package-lock.json
 *.db
 next-env.d.ts
+services/avatar-engine/

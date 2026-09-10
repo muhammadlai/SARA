@@ -26,6 +26,7 @@ export default defineConfig({
             "packages/logger/test/**/*.test.ts",
             "packages/db/test/**/*.test.ts",
             "packages/clipfinder/test/**/*.test.ts",
+            "packages/sara/test/**/*.test.ts",
           ],
           alias: {
             "@sara/types": src("types"),
@@ -33,6 +34,7 @@ export default defineConfig({
             "@sara/logger": src("logger"),
             "@sara/db": src("db"),
             "@sara/clipfinder": src("clipfinder"),
+            "@sara/live": src("sara"),
           },
         },
       },

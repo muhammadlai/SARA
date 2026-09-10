@@ -5,11 +5,14 @@
 > personality and emotions, manage tasks, create content, and — where official APIs permit —
 > help run a social-media workflow for Facebook, Instagram, YouTube and TikTok.
 
-**Status: Phase 1 — Application scaffold ✅ · AI Drama Clip Finder ✅** (Phase 0 foundation ✅).
-Sara is being built incrementally: see [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) for the roadmap
-and [ARCHITECTURE.md](ARCHITECTURE.md) for the architecture. The dashboard shell, API service,
-configuration, logging, auth foundation and database layer are live, plus the first agent feature:
-the **AI Drama Clip Finder** at `/clip-finder` ([docs/clip-finder.md](docs/clip-finder.md)).
+**Status: Phase 1 scaffold ✅ · AI Drama Clip Finder ✅ · Sara AI virtual LIVE host ✅**
+(Phase 0 foundation ✅). Sara is being built incrementally: see
+[DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) for the roadmap and [ARCHITECTURE.md](ARCHITECTURE.md)
+for the architecture. Live today: the dashboard shell, API service, configuration, logging, auth
+foundation, database layer, the **AI Drama Clip Finder** (`/clip-finder`,
+[docs/clip-finder.md](docs/clip-finder.md)) and **Sara AI — the virtual LIVE host**
+(`/sara`, [docs/sara-ai.md](docs/sara-ai.md)), built on the vendored
+[AvatarAI](https://github.com/PunithVT/ai-avatar-system) engine (MIT, `services/avatar-engine/`).
 
 [![CI](https://github.com/muhammadlai/SARA/actions/workflows/ci.yml/badge.svg)](https://github.com/muhammadlai/SARA/actions/workflows/ci.yml)
 
@@ -40,7 +43,9 @@ sara/
 │   ├── logger/                   # Structured pino logging
 │   ├── db/                       # SQLite (node:sqlite) foundation + migrations
 │   ├── clipfinder/               # AI Drama Clip Finder domain core (pipeline, scoring, jobs)
+│   ├── sara/                     # Sara AI LIVE host control plane (brain, memory, safety)
 │   └── ui/                       # Reusable dashboard UI primitives
+├── services/                     # avatar-engine (vendored AvatarAI, MIT) + Sara assets
 ├── docs/                         # Conventions, testing strategy, security, ADRs
 ├── scripts/                      # Repo verification harness
 └── .github/workflows/ci.yml      # CI: lint → typecheck → test → build → verify
@@ -103,6 +108,7 @@ Login is rate limited (5 attempts/minute/IP). Sessions are HttpOnly signed cooki
 | [docs/TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md) | Test pyramid, mocking policy, CI gates |
 | [docs/SECURITY.md](docs/SECURITY.md) | Secrets, permission scopes, approvals, audit log |
 | [docs/clip-finder.md](docs/clip-finder.md) | AI Drama Clip Finder: pipeline, scoring, API, env, limits |
+| [docs/sara-ai.md](docs/sara-ai.md) | Sara AI virtual LIVE host: brain, memory, safety, TikTok policy |
 | [docs/adr/](docs/adr/) | Architecture decision records |
 
 ## Ground rules

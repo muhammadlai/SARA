@@ -278,3 +278,104 @@ export function loadClipFinderConfig(
     llmModel: data.LLM_MODEL ?? null,
   };
 }
+
+// ── Sara LIVE host configuration ─────────────────────────────────────────────
+export const saraConfigSchema = z.object({
+  SARA_LLM_PROVIDER: z.enum(["auto", "openai", "anthropic", "ollama", "offline"]).default("auto"),
+  SARA_LLM_MODEL: z.string().min(1).optional(),
+  SARA_LLM_BASE_URL: z
+    .string()
+    .optional()
+    .refine((v) => v === undefined || /^https?:\/\/[^\s]+$/.test(v), {
+      message: "SARA_LLM_BASE_URL must be http(s)",
+    }),
+  SARA_TTS_ENGINE_URL: z.string().optional(), // AvatarAI engine base URL (Chatterbox)
+  SARA_TTS_EDGE_PYTHON: z.string().optional(), // python bin for edge-tts (e.g. /usr/bin/python3)
+  SARA_TTS_PIPER_VOICE: z.string().optional(), // path to piper .onnx voice
+  SARA_TTS_PIPER_BIN: z.string().optional(),
+  SARA_VOICE_ID: z.string().optional(), // cloned-voice id inside the engine
+  SARA_AVATAR_ENGINE_URL: z.string().optional(),
+  SARA_AVATAR_ID: z.string().optional(),
+  SARA_TIKTOK_EVENTS_URL: z
+    .string()
+    .optional()
+    .refine((v) => v === undefined || /^https?:\/\/[^\s]+$/.test(v), {
+      message: "SARA_TIKTOK_EVENTS_URL must be http(s)",
+    }),
+  SARA_TIKTOK_TOKEN: z.string().optional(),
+  SARA_SIMULATOR: booleanText.default("true"), // simulator source enabled (dev/verify)
+  SARA_MEMORY_ENABLED: booleanText.default("true"),
+  SARA_RESPONSES_PER_MINUTE: z.coerce.number().int().min(1).max(60).default(8),
+  SARA_AI_DISCLOSURE: z.string().min(1).optional(),
+  ANTHROPIC_API_KEY: z.string().min(1).optional(),
+  OPENAI_API_KEY: z.string().min(1).optional(),
+  OPENAI_BASE_URL: z.string().optional(),
+});
+
+export interface SaraConfig {
+  llmProvider: "auto" | "openai" | "anthropic" | "ollama" | "offline";
+  llmModel: string;
+  llmBaseUrl: string | null;
+  openaiApiKey: string | null;
+  anthropicApiKey: string | null;
+  ttsEngineUrl: string | null;
+  ttsEdgePython: string | null;
+  piperVoicePath: string | null;
+  piperBinary: string | null;
+  voiceId: string | null;
+  avatarEngineUrl: string | null;
+  avatarId: string | null;
+  tiktokEventsUrl: string | null;
+  tiktokToken: string | null;
+  simulatorEnabled: boolean;
+  memoryEnabled: boolean;
+  responsesPerMinute: number;
+  aiDisclosure: string;
+}
+
+function secret(value: string | undefined): string | null {
+  return value && !value.startsWith("changeme") ? value : null;
+}
+
+export function loadSaraConfig(env: NodeJS.ProcessEnv = process.env): SaraConfig {
+  const parsed = saraConfigSchema.safeParse(env);
+  if (!parsed.success) throw new ConfigError(formatIssues(parsed.error));
+  const d = parsed.data;
+  const openaiKey = secret(d.OPENAI_API_KEY);
+  let provider = d.SARA_LLM_PROVIDER;
+  if (provider === "auto") {
+    provider = openaiKey
+      ? "openai"
+      : d.ANTHROPIC_API_KEY
+        ? "anthropic"
+        : d.SARA_LLM_BASE_URL
+          ? "ollama"
+          : "offline";
+  }
+  return {
+    llmProvider: provider,
+    llmModel:
+      d.SARA_LLM_MODEL ??
+      (provider === "anthropic"
+        ? "claude-sonnet-4-6"
+        : provider === "ollama"
+          ? "llama3.1"
+          : "gpt-4o-mini"),
+    llmBaseUrl: d.SARA_LLM_BASE_URL ?? (provider === "ollama" ? "http://localhost:11434/v1" : null),
+    openaiApiKey: openaiKey,
+    anthropicApiKey: secret(d.ANTHROPIC_API_KEY),
+    ttsEngineUrl: d.SARA_TTS_ENGINE_URL ?? d.SARA_AVATAR_ENGINE_URL ?? null,
+    ttsEdgePython: d.SARA_TTS_EDGE_PYTHON ?? null,
+    piperVoicePath: d.SARA_TTS_PIPER_VOICE ?? null,
+    piperBinary: d.SARA_TTS_PIPER_BIN ?? null,
+    voiceId: d.SARA_VOICE_ID ?? null,
+    avatarEngineUrl: d.SARA_AVATAR_ENGINE_URL ?? null,
+    avatarId: d.SARA_AVATAR_ID ?? null,
+    tiktokEventsUrl: d.SARA_TIKTOK_EVENTS_URL ?? null,
+    tiktokToken: secret(d.SARA_TIKTOK_TOKEN),
+    simulatorEnabled: d.SARA_SIMULATOR,
+    memoryEnabled: d.SARA_MEMORY_ENABLED,
+    responsesPerMinute: d.SARA_RESPONSES_PER_MINUTE,
+    aiDisclosure: d.SARA_AI_DISCLOSURE ?? "🤖 Sara is an AI virtual character.",
+  };
+}
