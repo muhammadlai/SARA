@@ -1,0 +1,45 @@
+# ── Dependencies ─────────────────────────────────────────────
+node_modules/
+
+# ── Environment & secrets (never commit these) ───────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ── Builds & output ──────────────────────────────────────────
+dist/
+build/
+out/
+.next/
+*.tsbuildinfo
+next-env.d.ts
+
+# ── Test & coverage ──────────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ── Logs ─────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+
+# ── Runtime data (local SQLite DB, uploads, caches) ──────────
+data/
+*.db
+*.db-journal
+uploads/
+media/cache/
+
+# ── Editor / OS ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# ── Tooling caches ───────────────────────────────────────────
+.turbo/
+.eslintcache
+.vercel

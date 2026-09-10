@@ -1,0 +1,23 @@
+{
+  "name": "@sara/db",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Database foundation for Sara: SQLite via node:sqlite, migrations, health checks.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "migrate": "tsx src/migrate.ts",
+    "migrate:status": "tsx src/migrate.ts --status"
+  },
+  "dependencies": {
+    "@sara/config": "*"
+  }
+}
