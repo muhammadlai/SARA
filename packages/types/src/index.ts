@@ -44,6 +44,7 @@ export type ErrorCode =
   | "FORBIDDEN"
   | "AUTH_NOT_CONFIGURED"
   | "RATE_LIMITED"
+  | "CONFLICT"
   | "SERVICE_UNAVAILABLE";
 
 export interface ApiSuccess<TData> {

@@ -1,0 +1,29 @@
+{
+  "name": "@sara/clipfinder",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Sara AI Drama Clip Finder: video → transcript → scenes → ranked clips → vertical shorts.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@sara/config": "*",
+    "@sara/db": "*",
+    "@sara/logger": "*",
+    "@sara/types": "*",
+    "zod": "^3.25.0"
+  },
+  "optionalDependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@ffprobe-installer/ffprobe": "^1.1.0"
+  }
+}

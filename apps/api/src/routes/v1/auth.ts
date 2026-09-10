@@ -8,11 +8,12 @@
  * limited to blunt brute-force attempts. Phase 2 replaces env credentials
  * with database-backed users.
  */
-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyInstance } from "fastify";
 import { apiOk, type SessionInfo } from "@sara/types";
 import { z } from "zod";
 import { AppError } from "../../lib/errors.js";
 import { LOGIN_RATE_LIMIT } from "../../lib/rate-limits.js";
+import { requireSession } from "../../lib/auth-guard.js";
 import {
   SESSION_COOKIE_NAME,
   SESSION_TTL_SECONDS,
@@ -32,23 +33,6 @@ declare module "fastify" {
   interface FastifyRequest {
     session?: SessionClaims;
   }
-}
-
-/** preHandler that requires a valid session cookie (for future protected routes). */
-export function requireSession(): {
-  preHandler: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
-} {
-  return {
-    preHandler: async (request, _reply) => {
-      const token = request.cookies[SESSION_COOKIE_NAME];
-      const claims =
-        token === undefined ? null : verifySession(token, request.server.sessionSecret);
-      if (claims === null) {
-        throw new AppError("UNAUTHORIZED", "Authentication required", 401);
-      }
-      request.session = claims;
-    },
-  };
 }
 
 export async function authRoutes(app: FastifyInstance): Promise<void> {
@@ -109,4 +93,6 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     reply.clearCookie(SESSION_COOKIE_NAME, { path: "/" });
     return apiOk({ loggedOut: true }, request.id);
   });
+
+  void requireSession; // re-exported via lib/auth-guard for route guards
 }

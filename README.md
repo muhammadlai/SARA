@@ -5,11 +5,11 @@
 > personality and emotions, manage tasks, create content, and — where official APIs permit —
 > help run a social-media workflow for Facebook, Instagram, YouTube and TikTok.
 
-**Status: Phase 1 — Application scaffold ✅** (Phase 0 foundation ✅). Sara is being built
-incrementally: see [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) for the roadmap and
-[ARCHITECTURE.md](ARCHITECTURE.md) for the architecture. The dashboard shell, API service,
-configuration, logging, auth foundation and database layer are live; agent features arrive
-phase by phase.
+**Status: Phase 1 — Application scaffold ✅ · AI Drama Clip Finder ✅** (Phase 0 foundation ✅).
+Sara is being built incrementally: see [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) for the roadmap
+and [ARCHITECTURE.md](ARCHITECTURE.md) for the architecture. The dashboard shell, API service,
+configuration, logging, auth foundation and database layer are live, plus the first agent feature:
+the **AI Drama Clip Finder** at `/clip-finder` ([docs/clip-finder.md](docs/clip-finder.md)).
 
 [![CI](https://github.com/muhammadlai/SARA/actions/workflows/ci.yml/badge.svg)](https://github.com/muhammadlai/SARA/actions/workflows/ci.yml)
 
@@ -39,6 +39,7 @@ sara/
 │   ├── config/                   # zod-validated env loading (single source for process.env)
 │   ├── logger/                   # Structured pino logging
 │   ├── db/                       # SQLite (node:sqlite) foundation + migrations
+│   ├── clipfinder/               # AI Drama Clip Finder domain core (pipeline, scoring, jobs)
 │   └── ui/                       # Reusable dashboard UI primitives
 ├── docs/                         # Conventions, testing strategy, security, ADRs
 ├── scripts/                      # Repo verification harness
@@ -101,6 +102,7 @@ Login is rate limited (5 attempts/minute/IP). Sessions are HttpOnly signed cooki
 | [docs/CODING_CONVENTIONS.md](docs/CODING_CONVENTIONS.md) | Code style, naming, errors, logging, git |
 | [docs/TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md) | Test pyramid, mocking policy, CI gates |
 | [docs/SECURITY.md](docs/SECURITY.md) | Secrets, permission scopes, approvals, audit log |
+| [docs/clip-finder.md](docs/clip-finder.md) | AI Drama Clip Finder: pipeline, scoring, API, env, limits |
 | [docs/adr/](docs/adr/) | Architecture decision records |
 
 ## Ground rules

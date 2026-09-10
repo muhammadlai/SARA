@@ -3,6 +3,7 @@ import { Badge } from "@sara/ui";
 import { NAV_ITEMS } from "@/lib/nav";
 
 const SHORT_BLURBS: Record<string, string> = {
+  "/clip-finder": "Find the best drama moments: transcribe, score, rank, render 9:16 shorts.",
   "/chat": "Natural conversations with streaming replies and memory.",
   "/tasks": "Personal task system with reminders and schedules.",
   "/memory": "Preferences, long-term facts, full inspect/delete control.",
@@ -32,7 +33,11 @@ export function FeatureGrid() {
             >
               <div className="flex items-center justify-between">
                 <Icon className="size-5 text-violet-300" />
-                <Badge variant="outline">Phase {feature.phase}</Badge>
+                {feature.phase === null ? (
+                  <Badge variant="success">Live</Badge>
+                ) : (
+                  <Badge variant="outline">Phase {feature.phase}</Badge>
+                )}
               </div>
               <div className="mt-3 text-sm font-medium text-zinc-100">{feature.label}</div>
               <p className="mt-1 text-xs leading-5 text-zinc-500">{SHORT_BLURBS[feature.href]}</p>

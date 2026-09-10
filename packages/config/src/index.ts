@@ -207,3 +207,74 @@ export function loadWebConfig(env: NodeJS.ProcessEnv = process.env): WebConfig {
     appUrl: parsed.data.APP_URL ?? null,
   };
 }
+
+// ── Clip Finder configuration ──────────────────────────────────────────────
+
+export const clipFinderConfigSchema = z.object({
+  MOCK_CLIP_FINDER: booleanText,
+  CLIP_FINDER_CONCURRENCY: z.coerce.number().int().min(1).max(4).default(1),
+  CLIP_FINDER_MAX_UPLOAD_MB: z.coerce.number().min(1).max(4096).default(512),
+  CLIP_FINDER_MAX_URL_SIZE_MB: z.coerce.number().min(1).max(4096).default(1024),
+  CLIP_FINDER_MAX_DURATION_MIN: z.coerce.number().min(1).max(600).default(120),
+  CLIP_FINDER_SCENE_THRESHOLD: z.coerce.number().min(0.05).max(0.95).default(0.3),
+  CLIP_FINDER_RETENTION_HOURS: z.coerce.number().min(1).max(8760).default(24),
+  CLIP_FINDER_DATA_DIR: z.string().min(1).optional(),
+  CLIP_FINDER_FFMPEG_PATH: z.string().min(1).optional(),
+  CLIP_FINDER_FFPROBE_PATH: z.string().min(1).optional(),
+  OPENAI_API_KEY: z.string().min(1).optional(),
+  OPENAI_BASE_URL: z
+    .string()
+    .optional()
+    .refine((v) => v === undefined || /^https?:\/\/[^\s]+$/.test(v), {
+      message: "OPENAI_BASE_URL must be an http(s) URL",
+    }),
+  WHISPER_MODEL: z.string().min(1).optional(),
+  LLM_MODEL: z.string().min(1).optional(),
+});
+
+export interface ClipFinderConfig {
+  mock: boolean;
+  concurrency: number;
+  maxUploadBytes: number;
+  maxUrlBytes: number;
+  maxDurationMinutes: number;
+  sceneThreshold: number;
+  retentionHours: number;
+  dataDir: string;
+  ffmpegPath: string | null;
+  ffprobePath: string | null;
+  openaiApiKey: string | null;
+  openaiBaseUrl: string | null;
+  whisperModel: string | null;
+  llmModel: string | null;
+}
+
+export function loadClipFinderConfig(
+  env: NodeJS.ProcessEnv = process.env,
+  defaults: { dataDir?: string } = {},
+): ClipFinderConfig {
+  const parsed = clipFinderConfigSchema.safeParse(env);
+  if (!parsed.success) throw new ConfigError(formatIssues(parsed.error));
+  const data = parsed.data;
+  const hasAiKey = data.OPENAI_API_KEY !== undefined && !data.OPENAI_API_KEY.startsWith("changeme");
+  const mock = data.MOCK_CLIP_FINDER ?? !hasAiKey;
+  return {
+    mock,
+    concurrency: data.CLIP_FINDER_CONCURRENCY,
+    maxUploadBytes: data.CLIP_FINDER_MAX_UPLOAD_MB * 1024 * 1024,
+    maxUrlBytes: data.CLIP_FINDER_MAX_URL_SIZE_MB * 1024 * 1024,
+    maxDurationMinutes: data.CLIP_FINDER_MAX_DURATION_MIN,
+    sceneThreshold: data.CLIP_FINDER_SCENE_THRESHOLD,
+    retentionHours: data.CLIP_FINDER_RETENTION_HOURS,
+    dataDir:
+      data.CLIP_FINDER_DATA_DIR ??
+      defaults.dataDir ??
+      path.resolve(process.cwd(), "data/clip-finder"),
+    ffmpegPath: data.CLIP_FINDER_FFMPEG_PATH ?? null,
+    ffprobePath: data.CLIP_FINDER_FFPROBE_PATH ?? null,
+    openaiApiKey: hasAiKey ? (data.OPENAI_API_KEY ?? null) : null,
+    openaiBaseUrl: data.OPENAI_BASE_URL ?? null,
+    whisperModel: data.WHISPER_MODEL ?? null,
+    llmModel: data.LLM_MODEL ?? null,
+  };
+}

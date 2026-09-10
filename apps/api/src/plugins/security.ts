@@ -3,6 +3,7 @@
  * configured origins, cookie parsing and rate limiting.
  */
 import cookie from "@fastify/cookie";
+import multipart from "@fastify/multipart";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
@@ -28,6 +29,15 @@ export async function registerSecurity(app: FastifyInstance, config: ApiConfig):
   });
 
   await app.register(cookie);
+
+  // Multipart uploads (Clip Finder video sources). The route applies the
+  // validated CLIP_FINDER_MAX_UPLOAD_MB limit per request on top of this cap.
+  await app.register(multipart, {
+    limits: {
+      fileSize: 2 * 1024 * 1024 * 1024,
+      files: 1,
+    },
+  });
 
   await app.register(rateLimit, {
     global: true,

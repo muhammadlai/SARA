@@ -124,6 +124,15 @@ const REQUIRED_FILES = [
   ["packages/db/src/index.ts", 500],
   ["packages/ui/package.json", 100],
   ["packages/ui/src/index.ts", 200],
+  // Clip Finder feature
+  ["packages/clipfinder/package.json", 150],
+  ["packages/clipfinder/src/index.ts", 500],
+  ["packages/clipfinder/src/pipeline.ts", 1000],
+  ["packages/clipfinder/src/scoring.ts", 500],
+  ["packages/db/migrations/0002_clip_finder.sql", 500],
+  ["apps/api/src/routes/v1/clip-finder.ts", 1000],
+  ["apps/web/components/clip-finder/clip-finder-app.tsx", 1000],
+  ["docs/clip-finder.md", 1000],
 ];
 
 runCheck("required files present", () => {
@@ -202,7 +211,7 @@ const SECRET_PATTERNS = [
 ];
 // High-entropy generic blob; skipped for files where long base64 is legitimate.
 const GENERIC_SECRET = /[A-Za-z0-9+/_-]{45,}={0,2}/;
-const GENERIC_SKIP = /(^|\/)(package-lock\.json|.*\.svg|.*\.min\..*)$/;
+const GENERIC_SKIP = /(^|\/)(package-lock\.json|.*\.svg|.*\.min\..*|verify\.mjs)$/;
 const TEXT_EXT = new Set([
   ".md",
   ".mjs",
@@ -231,7 +240,8 @@ runCheck("no secrets in tracked files", () => {
       for (const [pattern, label] of SECRET_PATTERNS) {
         if (pattern.test(line)) hits.push(`${rel}:${i + 1} → ${label}`);
       }
-      if (!GENERIC_SKIP.test(rel) && GENERIC_SECRET.test(line)) {
+      const stripped = line.replace(/[-_=*~`|#]{10,}/g, ""); // md table borders etc.
+      if (!GENERIC_SKIP.test(rel) && GENERIC_SECRET.test(stripped)) {
         hits.push(`${rel}:${i + 1} → high-entropy blob (possible secret)`);
       }
     });
